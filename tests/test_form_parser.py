@@ -1,6 +1,14 @@
+from typing import Any, Dict
+
 import pytest
-from typing import Dict, Any
-from atlassianforms.form.parser import ServiceDeskFormParser, ServiceDeskForm, ServiceDeskFormField, ServiceDeskFormFieldValue
+
+from atlassianforms.form.parser import (
+    ServiceDeskForm,
+    ServiceDeskFormField,
+    ServiceDeskFormFieldValue,
+    ServiceDeskFormParser,
+)
+
 
 @pytest.fixture
 def sample_json_data() -> Dict[str, Any]:
@@ -10,13 +18,13 @@ def sample_json_data() -> Dict[str, Any]:
             "name": "IT Help Desk",
             "description": "IT support portal",
             "serviceDeskId": "SD-456",
-            "projectId": "PROJ-789"
+            "projectId": "PROJ-789",
         },
         "reqCreate": {
             "id": "REQ-001",
             "form": {
                 "name": "IT Support Request",
-                "descriptionHtml": "<p>Submit your IT support request</p>"
+                "descriptionHtml": "<p>Submit your IT support request</p>",
             },
             "fields": [
                 {
@@ -26,7 +34,7 @@ def sample_json_data() -> Dict[str, Any]:
                     "description": "Brief description of the issue",
                     "descriptionHtml": "<p>Brief description of the issue</p>",
                     "required": True,
-                    "displayed": True
+                    "displayed": True,
                 },
                 {
                     "fieldType": "textarea",
@@ -36,7 +44,7 @@ def sample_json_data() -> Dict[str, Any]:
                     "descriptionHtml": "<p>Detailed description of the issue</p>",
                     "required": True,
                     "displayed": True,
-                    "rendererType": "wiki"
+                    "rendererType": "wiki",
                 },
                 {
                     "fieldType": "select",
@@ -49,16 +57,16 @@ def sample_json_data() -> Dict[str, Any]:
                     "values": [
                         {"value": "high", "label": "High", "selected": False},
                         {"value": "medium", "label": "Medium", "selected": True},
-                        {"value": "low", "label": "Low", "selected": False}
-                    ]
-                }
+                        {"value": "low", "label": "Low", "selected": False},
+                    ],
+                },
             ],
             "proformaTemplateForm": {
                 "updated": "2023-09-15T12:00:00Z",
                 "design": {
                     "settings": {
                         "templateId": 123,
-                        "templateFormUuid": "FORM-UUID-456"
+                        "templateFormUuid": "FORM-UUID-456",
                     },
                     "questions": {
                         "CUSTOM-001": {
@@ -66,26 +74,27 @@ def sample_json_data() -> Dict[str, Any]:
                             "label": "Custom Field",
                             "description": "A custom field",
                             "validation": {"rq": True},
-                            "jiraField": "customfield_10001"
+                            "jiraField": "customfield_10001",
                         }
-                    }
+                    },
                 },
                 "proformaFieldOptions": {
                     "fields": {
                         "customfield_10001": [
                             {"id": "option1", "label": "Option 1"},
-                            {"id": "option2", "label": "Option 2"}
+                            {"id": "option2", "label": "Option 2"},
                         ]
                     }
-                }
-            }
+                },
+            },
         },
-        "xsrfToken": "TOKEN-789"
+        "xsrfToken": "TOKEN-789",
     }
+
 
 def test_parse_service_desk_form(sample_json_data):
     form = ServiceDeskFormParser.parse(sample_json_data)
-    
+
     assert isinstance(form, ServiceDeskForm)
     assert form.id == "PORTAL-123"
     assert form.service_desk_id == "SD-456"
@@ -100,29 +109,35 @@ def test_parse_service_desk_form(sample_json_data):
     assert form.template_form_uuid == "FORM-UUID-456"
     assert form.atl_token == "TOKEN-789"
 
+
 def test_parse_standard_fields(sample_json_data):
     form = ServiceDeskFormParser.parse(sample_json_data)
-    
+
     assert len(form.fields) == 4  # 3 standard fields + 1 proforma field
-    
+
     summary_field = next(field for field in form.fields if field.field_id == "summary")
     assert summary_field.field_type == "text"
     assert summary_field.label == "Summary"
     assert summary_field.required == True
-    
-    description_field = next(field for field in form.fields if field.field_id == "description")
+
+    description_field = next(
+        field for field in form.fields if field.field_id == "description"
+    )
     assert description_field.field_type == "textarea"
     assert description_field.renderer_type == "wiki"
-    
-    priority_field = next(field for field in form.fields if field.field_id == "priority")
+
+    priority_field = next(
+        field for field in form.fields if field.field_id == "priority"
+    )
     assert priority_field.field_type == "select"
     assert len(priority_field.values) == 3
     assert priority_field.values[1].value == "medium"
     assert priority_field.values[1].selected == True
 
+
 def test_parse_proforma_field(sample_json_data):
     form = ServiceDeskFormParser.parse(sample_json_data)
-    
+
     proforma_field = next(field for field in form.fields if field.is_proforma_field)
     assert proforma_field.field_type == "text"
     assert proforma_field.field_id == "customfield_10001"
@@ -133,9 +148,15 @@ def test_parse_proforma_field(sample_json_data):
     assert proforma_field.values[0].value == "option1"
     assert proforma_field.values[1].label == "Option 2"
 
+
 def test_parse_cascadingselect_field():
     cascading_json = {
-        "portal": {"id": "PORTAL-123", "name": "Test Portal", "serviceDeskId": "SD-456", "projectId": "PROJ-789"},
+        "portal": {
+            "id": "PORTAL-123",
+            "name": "Test Portal",
+            "serviceDeskId": "SD-456",
+            "projectId": "PROJ-789",
+        },
         "reqCreate": {
             "id": "REQ-001",
             "form": {"name": "Test Form", "descriptionHtml": ""},
@@ -152,33 +173,31 @@ def test_parse_cascadingselect_field():
                             "label": "Parent 1",
                             "children": [
                                 {"value": "child1", "label": "Child 1"},
-                                {"value": "child2", "label": "Child 2"}
-                            ]
+                                {"value": "child2", "label": "Child 2"},
+                            ],
                         },
                         {
                             "value": "parent2",
                             "label": "Parent 2",
-                            "children": [
-                                {"value": "child3", "label": "Child 3"}
-                            ]
-                        }
-                    ]
+                            "children": [{"value": "child3", "label": "Child 3"}],
+                        },
+                    ],
                 }
-            ]
-        }
+            ],
+        },
     }
-    
+
     form = ServiceDeskFormParser.parse(cascading_json)
-    
+
     assert len(form.fields) == 2  # Main field + subfield
-    
+
     main_field = form.fields[0]
     assert main_field.field_type == "cascadingselect"
     assert main_field.field_id == "cascading"
     assert len(main_field.values) == 2
     assert len(main_field.values[0].children) == 2
     assert len(main_field.values[1].children) == 1
-    
+
     subfield = form.fields[1]
     assert subfield.field_id == "cascading:1"
     assert subfield.label == "Cascading Select (Subfield)"

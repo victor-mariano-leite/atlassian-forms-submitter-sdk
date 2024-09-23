@@ -1,9 +1,15 @@
-from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Union, Tuple
-from atlassianforms.validators.field import ServiceDeskFormValidator
-from atlassianforms.form.parser import ServiceDeskForm, ServiceDeskFormField, ServiceDeskFormFieldValue
 import json
 import urllib.parse
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+from atlassianforms.form.parser import (
+    ServiceDeskForm,
+    ServiceDeskFormField,
+    ServiceDeskFormFieldValue,
+)
+from atlassianforms.validators.field import ServiceDeskFormValidator
+
 
 @dataclass
 class ServiceDeskFormFilled:
@@ -30,7 +36,6 @@ class ServiceDeskFormFilled:
         # Add the proformaFormData as a JSON string
         regular_fields["proformaFormData"] = json.dumps(proforma_data)
         regular_fields["projectId"] = str(self.form.project_id)
-
 
         # URL-encode the entire payload
         url_encoded_payload = urllib.parse.urlencode(regular_fields)
@@ -67,12 +72,11 @@ class ServiceDeskFormFilled:
         for field in self.form.fields:
             field_id = field.field_id
             if field_id in self.filled_values and field.is_proforma_field:
-                proforma_answers[field.proforma_question_id] = self._process_proforma_field(field_id, field.field_type)
+                proforma_answers[
+                    field.proforma_question_id
+                ] = self._process_proforma_field(field_id, field.field_type)
 
-        return {
-            "templateFormId": self.form.template_id,
-            "answers": proforma_answers
-        }
+        return {"templateFormId": self.form.template_id, "answers": proforma_answers}
 
     def _process_proforma_field(self, field_id: str, field_type: str) -> Dict[str, Any]:
         """
@@ -100,18 +104,18 @@ class ServiceDeskFormFilled:
         # Handle rich text fields with ADF formatting
         if field_type in ["rt", "cd"]:
             return {"adf": self._create_adf_document(value)}
-        
+
         # Handle choice fields
         elif field_type == "cl":
             # Convert value to the corresponding ID for the choice
             choice_id = self._get_choice_id(field_id, value)
             return {"text": "", "choices": [choice_id]}
-        
+
         # Handle date-time fields
         elif field_type == "dt":
             date, time = value.split("T")
             return {"date": date, "time": time}
-        
+
         # Handle simple text fields
         else:
             return {"text": value}
@@ -135,13 +139,15 @@ class ServiceDeskFormFilled:
         field = self.form.get_field_by_id(field_id)
         if not field:
             raise ValueError(f"Field ID '{field_id}' not found.")
-        
+
         # Search through the field's values to find the matching ID
         for choice in field.values:
             if choice.label == value or choice.value == value:
                 return choice.value
 
-        raise ValueError(f"Value '{value}' not found in choices for field '{field_id}'.")
+        raise ValueError(
+            f"Value '{value}' not found in choices for field '{field_id}'."
+        )
 
     def _create_adf_document(self, text: str) -> Dict[str, Any]:
         """
@@ -161,17 +167,11 @@ class ServiceDeskFormFilled:
             "version": 1,
             "type": "doc",
             "content": [
-                {
-                    "type": "paragraph",
-                    "content": [
-                        {"type": "text", "text": text}
-                    ]
-                }
-            ]
+                {"type": "paragraph", "content": [{"type": "text", "text": text}]}
+            ],
         }
 
 
-    
 class ServiceDeskFormManager:
     """
     Manages the ServiceDeskForm, providing functionality to list fields, list field values,
@@ -181,19 +181,19 @@ class ServiceDeskFormManager:
     ----------
     form : ServiceDeskForm
         The ServiceDeskForm instance to manage.
-    
+
     Methods
     -------
     list_fields() -> List[str]:
         Lists all field labels in the form.
-    
+
     list_field_values(field_identifier: str, parent_value: Optional[str] = None) -> List[str]:
         Lists all possible values for a given field, identified by either label or ID.
         If the field has nested values, the user can pass a parent value to list the children of that value.
-    
+
     validate(filled_values: Dict[str, Any]) -> bool:
         Validates the filled values according to the required fields in the form.
-    
+
     set_field_values(filled_values: Dict[str, Any]) -> ServiceDeskFormFilled:
         Sets the provided values for the form fields, including compound fields with children,
         and returns a ServiceDeskFormFilled instance.
@@ -235,7 +235,9 @@ class ServiceDeskFormManager:
             if field_id in filled_values:
                 if field.is_proforma_field:
                     # Map the proforma question ID to the appropriate answer
-                    proforma_answers[field.proforma_question_id] = filled_values[field_id]
+                    proforma_answers[field.proforma_question_id] = filled_values[
+                        field_id
+                    ]
                 else:
                     # Regular field processing
                     regular_fields[field_id] = filled_values[field_id]
@@ -243,14 +245,11 @@ class ServiceDeskFormManager:
         # Construct the proformaFormData section
         proforma_data = {
             "templateFormId": self.form.template_id,
-            "answers": proforma_answers
+            "answers": proforma_answers,
         }
 
         # Complete payload combining regular fields and proformaFormData
-        payload = {
-            **regular_fields,
-            "proformaFormData": json.dumps(proforma_data)
-        }
+        payload = {**regular_fields, "proformaFormData": json.dumps(proforma_data)}
 
         return payload
 
@@ -263,9 +262,19 @@ class ServiceDeskFormManager:
         List[str]
             A list of field labels.
         """
-        return [{"label": field.label, "id": field.field_id, "type": field.field_type, "description": field.description} for field in self.form.fields]
+        return [
+            {
+                "label": field.label,
+                "id": field.field_id,
+                "type": field.field_type,
+                "description": field.description,
+            }
+            for field in self.form.fields
+        ]
 
-    def list_field_values(self, field_identifier: str, parent_value: Optional[str] = None) -> List[str]:
+    def list_field_values(
+        self, field_identifier: str, parent_value: Optional[str] = None
+    ) -> List[str]:
         """
         Lists all possible values for a given field, identified by either label or ID.
         If the field has nested values, the user can pass a parent value to list the children of that value.
@@ -288,15 +297,24 @@ class ServiceDeskFormManager:
             raise ValueError(f"Field with identifier '{field_identifier}' not found.")
 
         if parent_value is None:
-            return [{"label": value.label, "value": value.value} for value in field.values]
+            return [
+                {"label": value.label, "value": value.value} for value in field.values
+            ]
         else:
             parent = self._get_value_by_label(field.values, parent_value)
             if parent:
-                return [{"label": child.label, "value": child.value} for child in parent.children]
+                return [
+                    {"label": child.label, "value": child.value}
+                    for child in parent.children
+                ]
             else:
-                raise ValueError(f"Parent value '{parent_value}' not found in field '{field_identifier}'.")
+                raise ValueError(
+                    f"Parent value '{parent_value}' not found in field '{field_identifier}'."
+                )
 
-    def _get_field_by_id_or_label(self, identifier: str) -> Optional[ServiceDeskFormField]:
+    def _get_field_by_id_or_label(
+        self, identifier: str
+    ) -> Optional[ServiceDeskFormField]:
         """
         Retrieves a field by its ID or label.
 
@@ -310,9 +328,18 @@ class ServiceDeskFormManager:
         Optional[ServiceDeskFormField]
             The ServiceDeskFormField instance if found, None otherwise.
         """
-        return next((field for field in self.form.fields if field.field_id == identifier or field.label == identifier), None)
+        return next(
+            (
+                field
+                for field in self.form.fields
+                if field.field_id == identifier or field.label == identifier
+            ),
+            None,
+        )
 
-    def _get_value_by_label_or_id(self, values: List[ServiceDeskFormFieldValue], identifier: str) -> Optional[ServiceDeskFormFieldValue]:
+    def _get_value_by_label_or_id(
+        self, values: List[ServiceDeskFormFieldValue], identifier: str
+    ) -> Optional[ServiceDeskFormFieldValue]:
         """
         Retrieves a value by its label or ID from a list of ServiceDeskFormFieldValue instances.
 
@@ -328,7 +355,14 @@ class ServiceDeskFormManager:
         Optional[ServiceDeskFormFieldValue]
             The ServiceDeskFormFieldValue instance if found, None otherwise.
         """
-        return next((value for value in values if value.label == identifier or value.value == identifier), None)
+        return next(
+            (
+                value
+                for value in values
+                if value.label == identifier or value.value == identifier
+            ),
+            None,
+        )
 
     def validate(self, filled_values: Dict[str, Any]) -> bool:
         """
@@ -344,7 +378,9 @@ class ServiceDeskFormManager:
         bool
             True if the filled values are valid, otherwise raises an exception.
         """
-        required_fields = [field.field_id for field in self.form.fields if field.is_required()]
+        required_fields = [
+            field.field_id for field in self.form.fields if field.is_required()
+        ]
         missing_fields = set(required_fields) - set(filled_values.keys())
 
         if missing_fields:
@@ -353,7 +389,7 @@ class ServiceDeskFormManager:
         # Validate the consistency of the filled values
         self.validator.validate(filled_values, self.form)
         return True
-   
+
     def set_field_values(self, filled_values: Dict[str, Any]) -> ServiceDeskFormFilled:
         """
         Sets the provided values for the form fields, including compound fields with children,
@@ -379,11 +415,15 @@ class ServiceDeskFormManager:
         flat_filled_values = self._flatten_field_values(filled_values)
 
         # Create the ServiceDeskFormFilled instance
-        form_filled = ServiceDeskFormFilled(form=self.form, filled_values=flat_filled_values)
+        form_filled = ServiceDeskFormFilled(
+            form=self.form, filled_values=flat_filled_values
+        )
 
         return form_filled
 
-    def _get_value_by_label(self, values: List[ServiceDeskFormFieldValue], label: str) -> Optional[ServiceDeskFormFieldValue]:
+    def _get_value_by_label(
+        self, values: List[ServiceDeskFormFieldValue], label: str
+    ) -> Optional[ServiceDeskFormFieldValue]:
         """
         Retrieves a value by its label from a list of ServiceDeskFormFieldValue instances.
 
@@ -400,16 +440,16 @@ class ServiceDeskFormManager:
             The ServiceDeskFormFieldValue instance if found, None otherwise.
         """
         return next((value for value in values if value.label == label), None)
-    
+
     def _convert_labels_to_ids(self, filled_values: Dict[str, Any]) -> Dict[str, Any]:
         """
         Converts field labels to IDs and value labels to value IDs in the filled values dictionary.
-        
+
         Parameters
         ----------
         filled_values : Dict[str, Any]
             The dictionary of filled field values, which may contain labels instead of IDs.
-        
+
         Returns
         -------
         Dict[str, Any]
@@ -420,31 +460,39 @@ class ServiceDeskFormManager:
             field = self._get_field_by_id_or_label(field_identifier)
             if not field:
                 raise ValueError(f"Field '{field_identifier}' not found in the form.")
-            
+
             # Ensure correct handling of compound fields and label-to-ID conversion
-            if field.field_type in ['cascadingselect', 'select', 'radiobuttons', 'multiselect']:
+            if field.field_type in [
+                "cascadingselect",
+                "select",
+                "radiobuttons",
+                "multiselect",
+            ]:
                 if self._is_compound_field_value(value):
                     converted_values.update(self._convert_compound_field(field, value))
                 else:
-                    converted_values[field.field_id] = self._convert_single_field(field, value)
+                    converted_values[field.field_id] = self._convert_single_field(
+                        field, value
+                    )
             else:
                 # For text fields and other simple types, directly assign the value
                 converted_values[field.field_id] = value
-        
+
         return converted_values
 
-
-    def _convert_single_field(self, field: ServiceDeskFormField, value: Union[str, List[str]]) -> Union[str, List[str]]:
+    def _convert_single_field(
+        self, field: ServiceDeskFormField, value: Union[str, List[str]]
+    ) -> Union[str, List[str]]:
         """
         Converts a single field's value(s) from a label(s) to an ID(s).
-        
+
         Parameters
         ----------
         field : ServiceDeskFormField
             The field to which the value belongs.
         value : Union[str, List[str]]
             The value label(s) to convert.
-        
+
         Returns
         -------
         Union[str, List[str]]
@@ -460,14 +508,14 @@ class ServiceDeskFormManager:
     def _convert_single_value(self, field: ServiceDeskFormField, value: str) -> str:
         """
         Converts a single value label to its corresponding ID.
-        
+
         Parameters
         ----------
         field : ServiceDeskFormField
             The field to which the value belongs.
         value : str
             The value label to convert.
-        
+
         Returns
         -------
         str
@@ -477,13 +525,16 @@ class ServiceDeskFormManager:
         if field.values:
             value_obj = self._get_value_by_label_or_id(field.values, value)
             if not value_obj:
-                raise ValueError(f"Invalid value '{value}' for field '{field.label}' or '{field.field_id}'.")
+                raise ValueError(
+                    f"Invalid value '{value}' for field '{field.label}' or '{field.field_id}'."
+                )
             return value_obj.value
         else:
             return value
 
-
-    def _convert_compound_field(self, field: ServiceDeskFormField, value: Union[Tuple[str, str], List[str]]) -> Dict[str, str]:
+    def _convert_compound_field(
+        self, field: ServiceDeskFormField, value: Union[Tuple[str, str], List[str]]
+    ) -> Dict[str, str]:
         """
         Converts a compound field's values from labels to IDs.
 
@@ -501,16 +552,22 @@ class ServiceDeskFormManager:
         """
         main_value, sub_value = value
         main_value_obj = self._get_value_by_label_or_id(field.values, main_value)
-        sub_value_obj = self._get_value_by_label_or_id(main_value_obj.children, sub_value) if main_value_obj else None
+        sub_value_obj = (
+            self._get_value_by_label_or_id(main_value_obj.children, sub_value)
+            if main_value_obj
+            else None
+        )
 
         if not main_value_obj or not sub_value_obj:
-            raise ValueError(f"Invalid compound value '{main_value}, {sub_value}' for field '{field.label}' or '{field.field_id}'.")
+            raise ValueError(
+                f"Invalid compound value '{main_value}, {sub_value}' for field '{field.label}' or '{field.field_id}'."
+            )
 
         return {
             field.field_id: main_value_obj.value,
-            f"{field.field_id}:1": sub_value_obj.value
+            f"{field.field_id}:1": sub_value_obj.value,
         }
-    
+
     def _is_compound_field_value(self, value: Any) -> bool:
         """
         Checks if the provided value is a compound field value.

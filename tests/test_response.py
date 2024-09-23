@@ -1,5 +1,13 @@
 import pytest
-from atlassianforms.models.response import CreateRequestResponseParser, CreateRequestResponse, Reporter, Issue, IssueField
+
+from atlassianforms.models.response import (
+    CreateRequestResponse,
+    CreateRequestResponseParser,
+    Issue,
+    IssueField,
+    Reporter,
+)
+
 
 @pytest.fixture
 def sample_response_data():
@@ -8,7 +16,7 @@ def sample_response_data():
             "email": "john.doe@example.com",
             "displayName": "John Doe",
             "avatarUrl": "https://example.com/avatar.jpg",
-            "accountId": "12345"
+            "accountId": "12345",
         },
         "requestTypeName": "IT Support",
         "key": "IT-123",
@@ -21,7 +29,7 @@ def sample_response_data():
                 "email": "john.doe@example.com",
                 "displayName": "John Doe",
                 "avatarUrl": "https://example.com/avatar.jpg",
-                "accountId": "12345"
+                "accountId": "12345",
             },
             "participants": ["user1", "user2"],
             "organisations": ["org1", "org2"],
@@ -38,13 +46,13 @@ def sample_response_data():
                 {
                     "id": "summary",
                     "label": "Summary",
-                    "value": {"text": "Need help with printer"}
+                    "value": {"text": "Need help with printer"},
                 },
                 {
                     "id": "description",
                     "label": "Description",
-                    "value": {"text": "Printer not responding"}
-                }
+                    "value": {"text": "Printer not responding"},
+                },
             ],
             "activityStream": ["Activity 1", "Activity 2"],
             "requestIcon": 1,
@@ -53,20 +61,21 @@ def sample_response_data():
             "canAttach": True,
             "categoryKey": "printer",
             "creatorAccountId": "12345",
-            "formKey": "FORM-1"
+            "formKey": "FORM-1",
         },
         "canCreateIssues": True,
         "canAddComment": True,
         "issueLinkUrl": "https://example.com/issues/IT-123",
-        "requestDetailsBaseUrl": "https://example.com/requests/"
+        "requestDetailsBaseUrl": "https://example.com/requests/",
     }
+
 
 def test_parse_reporter():
     reporter_data = {
         "email": "john.doe@example.com",
         "displayName": "John Doe",
         "avatarUrl": "https://example.com/avatar.jpg",
-        "accountId": "12345"
+        "accountId": "12345",
     }
     reporter = CreateRequestResponseParser._parse_reporter(reporter_data)
     assert isinstance(reporter, Reporter)
@@ -75,17 +84,19 @@ def test_parse_reporter():
     assert reporter.avatar_url == "https://example.com/avatar.jpg"
     assert reporter.account_id == "12345"
 
+
 def test_parse_issue_field():
     field_data = {
         "id": "summary",
         "label": "Summary",
-        "value": {"text": "Need help with printer"}
+        "value": {"text": "Need help with printer"},
     }
     issue_field = CreateRequestResponseParser._parse_issue_field(field_data)
     assert isinstance(issue_field, IssueField)
     assert issue_field.id == "summary"
     assert issue_field.label == "Summary"
     assert issue_field.value == {"text": "Need help with printer"}
+
 
 def test_parse_issue(sample_response_data):
     issue_data = sample_response_data["issue"]
@@ -116,6 +127,7 @@ def test_parse_issue(sample_response_data):
     assert issue.creator_account_id == "12345"
     assert issue.form_key == "FORM-1"
 
+
 def test_parse_create_request_response(sample_response_data):
     response = CreateRequestResponseParser.parse(sample_response_data)
     assert isinstance(response, CreateRequestResponse)
@@ -130,13 +142,14 @@ def test_parse_create_request_response(sample_response_data):
     assert response.issue_link_url == "https://example.com/issues/IT-123"
     assert response.request_details_base_url == "https://example.com/requests/"
 
+
 def test_parse_with_missing_optional_fields():
     minimal_data = {
         "reporter": {
             "email": "john.doe@example.com",
             "displayName": "John Doe",
             "avatarUrl": "https://example.com/avatar.jpg",
-            "accountId": "12345"
+            "accountId": "12345",
         },
         "issue": {
             "id": 123,
@@ -145,10 +158,10 @@ def test_parse_with_missing_optional_fields():
                 "email": "john.doe@example.com",
                 "displayName": "John Doe",
                 "avatarUrl": "https://example.com/avatar.jpg",
-                "accountId": "12345"
+                "accountId": "12345",
             },
-            "summary": "Minimal issue"
-        }
+            "summary": "Minimal issue",
+        },
     }
     response = CreateRequestResponseParser.parse(minimal_data)
     assert isinstance(response, CreateRequestResponse)
@@ -162,17 +175,14 @@ def test_parse_with_missing_optional_fields():
     assert response.issue.sequence == 0
     assert response.issue.fields == []
 
+
 def test_parse_with_empty_fields():
     data_with_empty_fields = {
         "reporter": {},
         "issue": {
             "reporter": {},
-            "fields": [
-                {"id": "empty_field"},
-                {"label": "Empty Label"},
-                {"value": {}}
-            ]
-        }
+            "fields": [{"id": "empty_field"}, {"label": "Empty Label"}, {"value": {}}],
+        },
     }
     response = CreateRequestResponseParser.parse(data_with_empty_fields)
     assert isinstance(response, CreateRequestResponse)
@@ -190,6 +200,7 @@ def test_parse_with_empty_fields():
     assert response.issue.fields[2].id == ""
     assert response.issue.fields[2].label == ""
     assert response.issue.fields[2].value == {}
+
 
 if __name__ == "__main__":
     pytest.main()

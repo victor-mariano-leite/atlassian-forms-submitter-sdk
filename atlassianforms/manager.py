@@ -1,8 +1,11 @@
-from atlassian import ServiceDesk, Jira
 import base64
+from typing import Any, Dict, List
+
 import requests
-from typing import Any, List, Dict
+from atlassian import Jira, ServiceDesk
+
 from atlassianforms.form.manager import ServiceDeskFormFilled
+
 
 class ServiceDeskRequestError(Exception):
     """
@@ -65,11 +68,16 @@ def remove_disposable_keys(data, disposable_keys):
         The cleaned-up data with disposable keys removed.
     """
     if isinstance(data, dict):
-        return {k: remove_disposable_keys(v, disposable_keys) for k, v in data.items() if k not in disposable_keys}
+        return {
+            k: remove_disposable_keys(v, disposable_keys)
+            for k, v in data.items()
+            if k not in disposable_keys
+        }
     elif isinstance(data, list):
         return [remove_disposable_keys(item, disposable_keys) for item in data]
     else:
         return data
+
 
 def clean_response(response):
     """
@@ -86,20 +94,52 @@ def clean_response(response):
         The cleaned response.
     """
     disposable_keys = [
-        'key', 'portalBaseUrl', 'onlyPortal',
-        'createPermission', 'portalAnnouncement', 'canViewCreateRequestForm',
-        'isProjectSimplified', 'mediaApiUploadInformation', 'userLanguageHeader',
-        'userLanguageMessageWiki', 'defaultLanguageHeader', 'defaultLanguageMessage',
-        'defaultLanguageDisplayName', 'isUsingLanguageSupport', 'translations', 
-        'callToAction', 'intro', 'instructions', 'icon', 'iconUrl', 'userOrganisations',
-        'canBrowseUsers', 'requestCreateBaseUrl', 'requestValidateBaseUrl', 'calendarParams',
-        'kbs', 'canRaiseOnBehalf', 'canSignupCustomers', 'canCreateAttachments',
-        'attachmentRequiredField', 'hasGroups', 'canSubmitWithEmailAddress', 'showRecaptcha',
-        'siteKey', 'hasProformaForm', 'linkedJiraFields', 'portalWebFragments', 'headerPanels',
-        'subheaderPanels', 'footerPanels', 'pagePanels', 'localId'
+        "key",
+        "portalBaseUrl",
+        "onlyPortal",
+        "createPermission",
+        "portalAnnouncement",
+        "canViewCreateRequestForm",
+        "isProjectSimplified",
+        "mediaApiUploadInformation",
+        "userLanguageHeader",
+        "userLanguageMessageWiki",
+        "defaultLanguageHeader",
+        "defaultLanguageMessage",
+        "defaultLanguageDisplayName",
+        "isUsingLanguageSupport",
+        "translations",
+        "callToAction",
+        "intro",
+        "instructions",
+        "icon",
+        "iconUrl",
+        "userOrganisations",
+        "canBrowseUsers",
+        "requestCreateBaseUrl",
+        "requestValidateBaseUrl",
+        "calendarParams",
+        "kbs",
+        "canRaiseOnBehalf",
+        "canSignupCustomers",
+        "canCreateAttachments",
+        "attachmentRequiredField",
+        "hasGroups",
+        "canSubmitWithEmailAddress",
+        "showRecaptcha",
+        "siteKey",
+        "hasProformaForm",
+        "linkedJiraFields",
+        "portalWebFragments",
+        "headerPanels",
+        "subheaderPanels",
+        "footerPanels",
+        "pagePanels",
+        "localId",
     ]
 
     return remove_disposable_keys(response, disposable_keys)
+
 
 class ServiceDeskManager:
     """
@@ -129,7 +169,7 @@ class ServiceDeskManager:
         Fetches the fields and parameters for the specified service desk request type.
     validate_field_data(portal_id: int, request_type_id: int, field_data: dict) -> bool:
         Validates the provided field data against the required fields from the request parameters.
-    create_service_desk_request(request_type: str, reporter_email: str, 
+    create_service_desk_request(request_type: str, reporter_email: str,
                                 field_data: dict, portal_id: str) -> Dict:
         Creates a service desk request with the specified parameters.
     """
@@ -152,15 +192,17 @@ class ServiceDeskManager:
         self.auth_token = auth_token
         self.auth_header = {
             "Authorization": f"Basic {base64.b64encode(f'{username}:{auth_token}'.encode()).decode()}",
-            "X-Atlassian-Token": "no-check"
+            "X-Atlassian-Token": "no-check",
         }
         self.default_headers = {
             "accept": "*/*",
             "content-type": "application/json",
-            "x-requested-with": "XMLHttpRequest"
+            "x-requested-with": "XMLHttpRequest",
         }
         self.all_headers = {**self.default_headers, **self.auth_header}
-        self.service_desk = ServiceDesk(url=base_url, username=username, password=auth_token)
+        self.service_desk = ServiceDesk(
+            url=base_url, username=username, password=auth_token
+        )
         self.jira = Jira(url=base_url, username=username, password=auth_token)
 
     def get_service_desks(self) -> List[Dict]:
@@ -190,7 +232,9 @@ class ServiceDeskManager:
         List[Dict]
             A list of dictionaries containing request type details.
         """
-        return self.service_desk.get_request_types(service_desk_id=service_desk_id, group_id=group_id)
+        return self.service_desk.get_request_types(
+            service_desk_id=service_desk_id, group_id=group_id
+        )
 
     def fetch_form(self, portal_id: int, request_type_id: int) -> Dict:
         """
@@ -212,10 +256,12 @@ class ServiceDeskManager:
         form_data = self._fetch_form_data(portal_id, request_type_id)
         additional_options = self._fetch_proforma_options(portal_id, request_type_id)
         autocomplete_options = self._fetch_autocomplete_options(form_data)
-        form_data['reqCreate']['proformaTemplateForm']["proformaFieldOptions"] = additional_options
-        form_data['reqCreate']["autocompleteOptions"] = autocomplete_options
+        form_data["reqCreate"]["proformaTemplateForm"][
+            "proformaFieldOptions"
+        ] = additional_options
+        form_data["reqCreate"]["autocompleteOptions"] = autocomplete_options
         return form_data
-    
+
     def _fetch_form_data(self, portal_id: int, request_type_id: int) -> Dict:
         """
         Fetches the form data for the specified service desk request type.
@@ -239,22 +285,24 @@ class ServiceDeskManager:
                 "portalWebFragments": {
                     "portalId": portal_id,
                     "requestTypeId": request_type_id,
-                    "portalPage": "CREATE_REQUEST"
+                    "portalPage": "CREATE_REQUEST",
                 },
                 "portal": {"id": portal_id},
                 "reqCreate": {"portalId": portal_id, "id": request_type_id},
-                "portalId": portal_id
+                "portalId": portal_id,
             },
             "models": ["portalWebFragments", "portal", "reqCreate"],
             "context": {
                 "helpCenterAri": "ari:cloud:help::help-center/023eca6c-913d-41af-a182-61e86fd72ccc/de1070f9-b9dd-460c-b02f-104fc367db40",
-                "clientBasePath": f"{self.base_url}/servicedesk/customer"
-            }
+                "clientBasePath": f"{self.base_url}/servicedesk/customer",
+            },
         }
         response = requests.post(url, headers=headers, json=body)
         response.raise_for_status()
 
-        return clean_response({**response.json(), "portalId": portal_id, "requestTypeId": request_type_id})
+        return clean_response(
+            {**response.json(), "portalId": portal_id, "requestTypeId": request_type_id}
+        )
 
     def _fetch_proforma_options(self, portal_id: int, request_type_id: int) -> Dict:
         """
@@ -308,35 +356,45 @@ class ServiceDeskManager:
         portal_id = form_data["portalId"]
         request_id = form_data["reqCreate"]["id"]
         field_map = {"fieldValueMap": {}, "query": ""}
-        field_map_values = {field["fieldId"]: "" for field in form_data['reqCreate']['fields']}
+        field_map_values = {
+            field["fieldId"]: "" for field in form_data["reqCreate"]["fields"]
+        }
         field_map["fieldValueMap"] = field_map_values
-        autocomplete_fields = [field for field in form_data["reqCreate"]["fields"] if field.get("autoCompleteUrl", "") and field.get("fieldType") != "organisationpicker"]
+        autocomplete_fields = [
+            field
+            for field in form_data["reqCreate"]["fields"]
+            if field.get("autoCompleteUrl", "")
+            and field.get("fieldType") != "organisationpicker"
+        ]
         additional_options = []
         for field in autocomplete_fields:
             customfield_id = field["fieldId"]
             try:
                 headers = self.all_headers
                 autocomplete_url = f"{self.base_url}/rest/servicedesk/cmdb/1/customer/portal/{portal_id}/request/{request_id}/field/{customfield_id}/autocomplete"
-                response = requests.post(autocomplete_url, headers=headers, json=field_map)
+                response = requests.post(
+                    autocomplete_url, headers=headers, json=field_map
+                )
                 response.raise_for_status()
                 response_dict = response.json()
             except requests.exceptions.HTTPError as e:
-                print(f"Failed to fetch autocomplete options for field {customfield_id}: {e}")
+                print(
+                    f"Failed to fetch autocomplete options for field {customfield_id}: {e}"
+                )
                 response_dict = {}
             response_dict = {
-                **response_dict, 
-                "fieldId": customfield_id, 
-                "fieldType": field.get("fieldType", ""), 
-                "fieldLabel": field.get("label", ""), 
-                "fieldDescription": field.get("description", ""), 
-                "fieldRequired": field.get("required", ""), 
-                "fieldDisplayed": field.get("displayed", ""), 
-                "fieldPresetValues": field.get("presetValues", ""), 
+                **response_dict,
+                "fieldId": customfield_id,
+                "fieldType": field.get("fieldType", ""),
+                "fieldLabel": field.get("label", ""),
+                "fieldDescription": field.get("description", ""),
+                "fieldRequired": field.get("required", ""),
+                "fieldDisplayed": field.get("displayed", ""),
+                "fieldPresetValues": field.get("presetValues", ""),
             }
             additional_options.append(response_dict)
         return additional_options
 
-    
     def create_request(self, form_filled: ServiceDeskFormFilled) -> Dict:
         """
         Creates a service desk request with the specified parameters.
@@ -354,20 +412,20 @@ class ServiceDeskManager:
             The response from the API after creating the request.
         """
         field_data = form_filled.to_request_payload()
-        
-        portal_id = form_filled.form.service_desk_id  
-        request_type_id = form_filled.form.request_type_id  
-        
+
+        portal_id = form_filled.form.service_desk_id
+        request_type_id = form_filled.form.request_type_id
+
         url = f"{self.base_url}/servicedesk/customer/portal/{portal_id}/create/{request_type_id}"
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept": "application/json",
-            **self.auth_header
+            **self.auth_header,
         }
-        
+
         params = requests.models.RequestEncodingMixin._encode_params(field_data)
         response = requests.post(url, headers=headers, data=params)
-        
+
         if response.status_code in (201, 200):
             return response.json()
         else:

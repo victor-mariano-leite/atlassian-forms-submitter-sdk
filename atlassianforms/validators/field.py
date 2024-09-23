@@ -1,7 +1,12 @@
-from datetime import datetime
 import json
+from datetime import datetime
 from typing import Any, Dict, List, Optional
-from atlassianforms.form.parser import ServiceDeskForm, ServiceDeskFormField, ServiceDeskFormFieldValue
+
+from atlassianforms.form.parser import (
+    ServiceDeskForm,
+    ServiceDeskFormField,
+    ServiceDeskFormFieldValue,
+)
 
 
 class ServiceDeskFormValidator:
@@ -49,16 +54,24 @@ class ServiceDeskFormValidator:
         for field_identifier, value in filled_values.items():
             # Check if this is a derived field (e.g., customfield_10118:1)
             field = self._get_field_by_id_or_label(form, field_identifier)
-            
+
             if not field:
                 raise ValueError(f"Field '{field_identifier}' not found in the form.")
 
-            if ':' in field_identifier:  # This is a subfield in a cascading select
-                self._validate_cascading_subfield(form, filled_values, field_identifier, value)
+            if ":" in field_identifier:  # This is a subfield in a cascading select
+                self._validate_cascading_subfield(
+                    form, filled_values, field_identifier, value
+                )
             else:
                 self._validate_generic_field(field, value)
-        
-    def _validate_cascading_subfield(self, form: ServiceDeskForm, filled_values: Dict[str, Any], field_identifier: str, value: str) -> None:
+
+    def _validate_cascading_subfield(
+        self,
+        form: ServiceDeskForm,
+        filled_values: Dict[str, Any],
+        field_identifier: str,
+        value: str,
+    ) -> None:
         """
         Validates a cascadingselect subfield by checking the main field and its associated subfield value.
 
@@ -79,28 +92,39 @@ class ServiceDeskFormValidator:
             If the main field or subfield value is invalid.
         """
         # Extract the main field ID
-        main_field_id = field_identifier.split(':')[0]
+        main_field_id = field_identifier.split(":")[0]
         main_field = self._get_field_by_id_or_label(form, main_field_id)
-        
+
         if not main_field:
-            raise ValueError(f"Main field '{main_field_id}' for subfield '{field_identifier}' not found in the form.")
-        
+            raise ValueError(
+                f"Main field '{main_field_id}' for subfield '{field_identifier}' not found in the form."
+            )
+
         # Validate that the main field's value is set correctly
         main_field_value = filled_values.get(main_field_id)
         if not main_field_value:
-            raise ValueError(f"Main field '{main_field.label}' with ID '{main_field_id}' is not set, but subfield '{field_identifier}' is provided.")
+            raise ValueError(
+                f"Main field '{main_field.label}' with ID '{main_field_id}' is not set, but subfield '{field_identifier}' is provided."
+            )
 
-        main_value_obj = self._get_value_by_label_or_id(main_field.values, main_field_value)
+        main_value_obj = self._get_value_by_label_or_id(
+            main_field.values, main_field_value
+        )
         if not main_value_obj:
-            raise ValueError(f"Invalid main field value '{main_field_value}' for field '{main_field.label}' or '{main_field.field_id}'.")
+            raise ValueError(
+                f"Invalid main field value '{main_field_value}' for field '{main_field.label}' or '{main_field.field_id}'."
+            )
 
         # Validate the subfield value
-        subfield_value_obj = self._get_value_by_label_or_id(main_value_obj.children, value)
+        subfield_value_obj = self._get_value_by_label_or_id(
+            main_value_obj.children, value
+        )
         if not subfield_value_obj:
             available_subfields = [child.label for child in main_value_obj.children]
-            raise ValueError(f"Invalid subfield value '{value}' for field '{main_field.label} (Subfield)' or '{field_identifier}'. "
-                            f"Available subfields: {available_subfields}")
-
+            raise ValueError(
+                f"Invalid subfield value '{value}' for field '{main_field.label} (Subfield)' or '{field_identifier}'. "
+                f"Available subfields: {available_subfields}"
+            )
 
     def _validate_generic_field(self, field: ServiceDeskFormField, value: Any) -> None:
         """
@@ -118,18 +142,26 @@ class ServiceDeskFormValidator:
         ValueError
             If the value is not valid for the field.
         """
-        if field.field_type == 'dt':
+        if field.field_type == "dt":
             if not self._validate_dt(value):
-                raise ValueError(f"Invalid date-time value '{value}' for field '{field.label}' or '{field.field_id}'.")
-        elif field.field_type in ['select', 'radiobuttons', 'multiselect']:
+                raise ValueError(
+                    f"Invalid date-time value '{value}' for field '{field.label}' or '{field.field_id}'."
+                )
+        elif field.field_type in ["select", "radiobuttons", "multiselect"]:
             if not self._validate_choice(value, [v.value for v in field.values]):
-                raise ValueError(f"Invalid choice value '{value}' for field '{field.label}' or '{field.field_id}'.")
-        elif field.field_type in ['textarea', 'text']:
+                raise ValueError(
+                    f"Invalid choice value '{value}' for field '{field.label}' or '{field.field_id}'."
+                )
+        elif field.field_type in ["textarea", "text"]:
             if not self._validate_text(value):
-                raise ValueError(f"Invalid text value '{value}' for field '{field.label}' or '{field.field_id}'.")
-        elif field.field_type == 'adf':
+                raise ValueError(
+                    f"Invalid text value '{value}' for field '{field.label}' or '{field.field_id}'."
+                )
+        elif field.field_type == "adf":
             if not self._validate_adf(value):
-                raise ValueError(f"Invalid ADF value '{value}' for field '{field.label}' or '{field.field_id}'.")
+                raise ValueError(
+                    f"Invalid ADF value '{value}' for field '{field.label}' or '{field.field_id}'."
+                )
 
     def _validate_dt_field(self, field: ServiceDeskFormField, value: str) -> None:
         """
@@ -148,7 +180,9 @@ class ServiceDeskFormValidator:
             If the value is not a valid date-time string.
         """
         if not self._validate_dt(value):
-            raise ValueError(f"Invalid date-time value '{value}' for field '{field.label}' or '{field.field_id}'.")
+            raise ValueError(
+                f"Invalid date-time value '{value}' for field '{field.label}' or '{field.field_id}'."
+            )
 
     def _validate_choice_field(self, field: ServiceDeskFormField, value: Any) -> None:
         """
@@ -167,8 +201,9 @@ class ServiceDeskFormValidator:
             If the value is not a valid choice.
         """
         if not self._validate_choice(value, [v.value for v in field.values]):
-            raise ValueError(f"Invalid choice value '{value}' for field '{field.label}' or '{field.field_id}'.")
-
+            raise ValueError(
+                f"Invalid choice value '{value}' for field '{field.label}' or '{field.field_id}'."
+            )
 
     def _validate_choice(self, value: str, choices: List[str]) -> bool:
         """
@@ -205,7 +240,9 @@ class ServiceDeskFormValidator:
             If the value is not valid text.
         """
         if not self._validate_text(value):
-            raise ValueError(f"Invalid text value '{value}' for field '{field.label}' or '{field.field_id}'.")
+            raise ValueError(
+                f"Invalid text value '{value}' for field '{field.label}' or '{field.field_id}'."
+            )
 
     def _validate_adf_field(self, field: ServiceDeskFormField, value: str) -> None:
         """
@@ -224,7 +261,9 @@ class ServiceDeskFormValidator:
             If the value is not a valid ADF string.
         """
         if not self._validate_adf(value):
-            raise ValueError(f"Invalid ADF value '{value}' for field '{field.label}' or '{field.field_id}'.")
+            raise ValueError(
+                f"Invalid ADF value '{value}' for field '{field.label}' or '{field.field_id}'."
+            )
 
     def _validate_dt(self, value: str) -> bool:
         """
@@ -306,7 +345,9 @@ class ServiceDeskFormValidator:
         except json.JSONDecodeError:
             return False
 
-    def _get_field_by_id_or_label(self, form: ServiceDeskForm, identifier: str) -> Optional[ServiceDeskFormField]:
+    def _get_field_by_id_or_label(
+        self, form: ServiceDeskForm, identifier: str
+    ) -> Optional[ServiceDeskFormField]:
         """
         Retrieves a field by its ID or label from the form.
 
@@ -322,10 +363,18 @@ class ServiceDeskFormValidator:
         Optional[ServiceDeskFormField]
             The ServiceDeskFormField instance if found, None otherwise.
         """
-        return next((field for field in form.fields if field.field_id == identifier or field.label == identifier), None)
+        return next(
+            (
+                field
+                for field in form.fields
+                if field.field_id == identifier or field.label == identifier
+            ),
+            None,
+        )
 
-
-    def _get_value_by_label_or_id(self, values: List[ServiceDeskFormFieldValue], identifier: str) -> Optional[ServiceDeskFormFieldValue]:
+    def _get_value_by_label_or_id(
+        self, values: List[ServiceDeskFormFieldValue], identifier: str
+    ) -> Optional[ServiceDeskFormFieldValue]:
         """
         Retrieves a value by its label or ID from a list of ServiceDeskFormFieldValue instances.
 
@@ -341,4 +390,11 @@ class ServiceDeskFormValidator:
         Optional[ServiceDeskFormFieldValue]
             The ServiceDeskFormFieldValue instance if found, None otherwise.
         """
-        return next((value for value in values if value.label == identifier or value.value == identifier), None)
+        return next(
+            (
+                value
+                for value in values
+                if value.label == identifier or value.value == identifier
+            ),
+            None,
+        )

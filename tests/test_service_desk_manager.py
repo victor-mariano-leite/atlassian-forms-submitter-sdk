@@ -1,13 +1,22 @@
-import pytest
-import requests
 import json
 from unittest.mock import Mock, patch
-from atlassianforms.manager import ServiceDeskManager, ServiceDeskRequestError, ServiceDeskFormFilled, remove_disposable_keys
+
+import pytest
+import requests
+
 from atlassianforms.form.parser import ServiceDeskForm
+from atlassianforms.manager import (
+    ServiceDeskFormFilled,
+    ServiceDeskManager,
+    ServiceDeskRequestError,
+    remove_disposable_keys,
+)
+
 
 @pytest.fixture
 def service_desk_manager():
     return ServiceDeskManager("https://example.atlassian.net", "username", "token")
+
 
 @pytest.fixture
 def mock_response():
@@ -15,7 +24,8 @@ def mock_response():
     mock.raise_for_status = Mock()
     return mock
 
-@patch('requests.post')
+
+@patch("requests.post")
 def test_create_request_success(mock_post, service_desk_manager):
     mock_response = Mock()
     mock_response.status_code = 201
@@ -32,13 +42,16 @@ def test_create_request_success(mock_post, service_desk_manager):
         portal_description="Test Description",
         form_description_html="<p>Test Form Description</p>",
     )
-    form_filled = ServiceDeskFormFilled(form=form, filled_values={"summary": "Test Issue"})
+    form_filled = ServiceDeskFormFilled(
+        form=form, filled_values={"summary": "Test Issue"}
+    )
 
     result = service_desk_manager.create_request(form_filled)
 
     assert result["issueKey"] == "SD-123"
 
-@patch('requests.post')
+
+@patch("requests.post")
 def test_create_request_failure(mock_post, service_desk_manager):
     mock_response = Mock()
     mock_response.status_code = 400
@@ -55,26 +68,26 @@ def test_create_request_failure(mock_post, service_desk_manager):
         portal_description="Test Description",
         form_description_html="<p>Test Form Description</p>",
     )
-    form_filled = ServiceDeskFormFilled(form=form, filled_values={"summary": "Test Issue"})
+    form_filled = ServiceDeskFormFilled(
+        form=form, filled_values={"summary": "Test Issue"}
+    )
 
     with pytest.raises(ServiceDeskRequestError) as excinfo:
         service_desk_manager.create_request(form_filled)
-    
+
     assert "400" in str(excinfo.value)
     assert "Bad Request" in str(excinfo.value)
+
 
 def test_remove_disposable_keys():
     test_data = {
         "keep": "value",
         "remove": "value",
-        "nested": {
-            "keep": "value",
-            "remove": "value"
-        },
+        "nested": {"keep": "value", "remove": "value"},
         "list": [
             {"keep": "value", "remove": "value"},
-            {"keep": "value", "remove": "value"}
-        ]
+            {"keep": "value", "remove": "value"},
+        ],
     }
     disposable_keys = ["remove"]
 
@@ -87,13 +100,14 @@ def test_remove_disposable_keys():
     assert "keep" in result["list"][0]
     assert "remove" not in result["list"][0]
 
-@patch('requests.post')
+
+@patch("requests.post")
 def test_fetch_autocomplete_options(mock_post, service_desk_manager):
     mock_response = Mock()
     mock_response.json.return_value = {
         "results": [
             {"objectId": "OBJ-1", "label": "Option 1"},
-            {"objectId": "OBJ-2", "label": "Option 2"}
+            {"objectId": "OBJ-2", "label": "Option 2"},
         ]
     }
     mock_post.return_value = mock_response
@@ -110,10 +124,10 @@ def test_fetch_autocomplete_options(mock_post, service_desk_manager):
                     "label": "CMDB Object",
                     "description": "Select a CMDB object",
                     "required": True,
-                    "displayed": True
+                    "displayed": True,
                 }
-            ]
-        }
+            ],
+        },
     }
 
     result = service_desk_manager._fetch_autocomplete_options(form_data)
@@ -124,6 +138,7 @@ def test_fetch_autocomplete_options(mock_post, service_desk_manager):
     assert result[0]["fieldLabel"] == "CMDB Object"
     assert len(result[0]["results"]) == 2
     assert result[0]["results"][0]["objectId"] == "OBJ-1"
+
 
 if __name__ == "__main__":
     pytest.main()

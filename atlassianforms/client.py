@@ -1,10 +1,14 @@
-from typing import Dict, Any
-from atlassianforms.manager import ServiceDeskManager
-from atlassianforms.form.parser import ServiceDeskFormParser
+from typing import Any, Dict
+
 from atlassianforms.form.manager import ServiceDeskFormManager
+from atlassianforms.form.parser import ServiceDeskFormParser
+from atlassianforms.manager import ServiceDeskManager
 from atlassianforms.models.response import CreateRequestResponseParser
 
-FORM_DIDNT_FETCH_ERROR = "Form has not been fetched and parsed. Please run `fetch_and_parse_form` first."
+FORM_DIDNT_FETCH_ERROR = (
+    "Form has not been fetched and parsed. Please run `fetch_and_parse_form` first."
+)
+
 
 class ServiceDeskFormClient:
     """
@@ -55,7 +59,9 @@ class ServiceDeskFormClient:
         self.base_url = base_url
         self.username = username
         self.auth_token = auth_token
-        self.service_desk_manager = ServiceDeskManager(base_url=self.base_url, username=self.username, auth_token=self.auth_token)
+        self.service_desk_manager = ServiceDeskManager(
+            base_url=self.base_url, username=self.username, auth_token=self.auth_token
+        )
         self.form_manager = None
 
     def fetch_and_parse_form(self, portal_id: int, request_type_id: int) -> None:
@@ -69,7 +75,9 @@ class ServiceDeskFormClient:
         request_type_id : int
             The ID of the request type.
         """
-        form = self.service_desk_manager.fetch_form(portal_id=portal_id, request_type_id=request_type_id)
+        form = self.service_desk_manager.fetch_form(
+            portal_id=portal_id, request_type_id=request_type_id
+        )
         form_obj = ServiceDeskFormParser.parse(form)
         self.form_manager = ServiceDeskFormManager(form_obj)
 
@@ -127,7 +135,9 @@ class ServiceDeskFormClient:
             raise ValueError(FORM_DIDNT_FETCH_ERROR)
         return self.form_manager.set_field_values(values)
 
-    def create_request(self, filled_values: Dict[str, Any]) -> CreateRequestResponseParser:
+    def create_request(
+        self, filled_values: Dict[str, Any]
+    ) -> CreateRequestResponseParser:
         """
         Creates a service desk request with the filled form values.
 
