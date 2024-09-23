@@ -1,0 +1,4 @@
+build==0.*
+twine==3.*
+atlassian-python-api==3.*
+requests
